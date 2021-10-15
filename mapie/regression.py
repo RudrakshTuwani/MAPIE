@@ -4,6 +4,7 @@ import warnings
 from typing import Iterable, List, Optional, Tuple, Union, cast
 
 import numpy as np
+import numpy.ma as ma
 from joblib import Parallel, delayed
 from sklearn.base import BaseEstimator, RegressorMixin, clone
 from sklearn.linear_model import LinearRegression
@@ -263,7 +264,8 @@ class MapieRegressor(BaseEstimator, RegressorMixin):  # type: ignore
         return estimator
 
     def _check_cv(
-        self, cv: Optional[Union[int, str, BaseCrossValidator]] = None,
+        self,
+        cv: Optional[Union[int, str, BaseCrossValidator]] = None,
     ) -> Union[str, BaseCrossValidator]:
         """
         Check if cross-validator is
@@ -642,16 +644,19 @@ class MapieRegressor(BaseEstimator, RegressorMixin):  # type: ignore
 
                 y_pred_low = np.column_stack(
                     [
-                        np.nanquantile(
-                            lower_bounds, _alpha, axis=1, interpolation="lower"
+                        np.quantile(
+                            ma.masked_invalid(lower_bounds),
+                            _alpha,
+                            axis=1,
+                            interpolation="lower",
                         )
                         for _alpha in alpha_
                     ]
                 )
                 y_pred_up = np.column_stack(
                     [
-                        np.nanquantile(
-                            upper_bounds,
+                        np.quantile(
+                            ma.masked_invalid(upper_bounds),
                             1 - _alpha,
                             axis=1,
                             interpolation="higher",
